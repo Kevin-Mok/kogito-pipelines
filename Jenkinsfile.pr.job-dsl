@@ -1,0 +1,33 @@
+job('kogito-runtimes-pr-check') {
+    scm {
+        git {
+            remote {
+                github('kiegroup/kogito-pipelines')
+            }
+            branch('*/master')
+        }
+    }
+    properties {
+        githubProjectUrl('https://github.com/kiegroup/kogito-runtimes/')
+    }
+    scriptPath('Jenkinsfile.pr')
+    triggers {
+        githubPullRequest {
+            admins(['triceo', 'rsynek', 'winklerm', 'mcimbale', 'mbiarnes', 'pszubiak', 'radtriste'])
+            orgWhitelist('kiegroup')
+            useGitHubHooks()
+            // use cron to check for new PR's/comments since webhook can't send payload to RHBA Jenkins on VPN?
+            cron('H/15 * * * *')
+            triggerPhrase('.*[j|J]enkins,? retest this.*')
+            skipBuildPhrase('.*\[skip\W+ci\].*')
+            allowMembersOfWhitelistedOrgsAsAdmin()
+            extensions {
+                commitStatus {
+                    context('Linux')
+                    statusUrl('${BUILD_URL}display/redirect')
+                    addTestResults()
+                }
+            }
+        }
+    }
+}
