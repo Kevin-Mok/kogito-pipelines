@@ -46,11 +46,17 @@ pipeline {
 
         BRANCH_FOR_LATEST="master"
     }
+    options {
+        // TODO: to be removed when can setup separate Maven repository for each PR
+        disableConcurrentBuilds()
+    }
 
     stages {
         stage("Initialize") {
             steps {
                 script {
+                    // since this Jenkinsfile is only being used for PR checks
+                    assert env.ghprbGhRepository != null
                     echo "temporary tag is ${TEMP_TAG}"
                     echo "nightly tag is ${NIGHTLY_TAG}"
 
@@ -67,6 +73,11 @@ pipeline {
                 script {
                     echo "Call ${RUNTIMES_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
+                    addStringParam(buildParams, "DISPLAY_NAME", "${getPRRepoName()} PR #${env.ghprbPullId}")
+                    addStringParam(buildParams, "PR_REPO", getPRRepoName())
+                    addStringParam(buildParams, "PR_AUTHOR", env.ghprbPullAuthorLogin)
+                    addStringParam(buildParams, "PR_SOURCE_BRANCH", env.ghprbSourceBranch)
+                    addStringParam(buildParams, "MAVEN_DEPLOY_REPOSITORY", env.MAVEN_REPOSITORY)
                     
                     // images and operator deploy testing will use older working artifacts if that one fails
                     buildJob(RUNTIMES_DEPLOY, buildParams, false)
@@ -181,4 +192,9 @@ void addBooleanParam(List params, String key, boolean value){
 
 String constructKey(String prefix, String paramId){
     return prefix == null || prefix == '' ? paramId : "${prefix}_${paramId}"
+}
+
+
+String getPRRepoName() {
+    return env.ghprbGhRepository.split("/")[1]
 }
