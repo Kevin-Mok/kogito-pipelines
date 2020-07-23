@@ -16,23 +16,41 @@ pipelineJob('kogito-runtimes-pr-check') {
         githubProjectUrl('https://github.com/kiegroup/kogito-runtimes/')
     }
     triggers {
-        githubPullRequest {
-            gitHubAuthId('kie-ci1-token')
-            admins(['triceo', 'rsynek', 'winklerm', 'mcimbale', 'mbiarnes', 'pszubiak', 'radtriste'])
-            orgWhitelist('kiegroup')
-            useGitHubHooks()
+        ghprbTrigger {
+            adminlist('triceo rsynek winklerm mcimbale mbiarnes pszubiak radtriste')
+            whitelist('')
+            orgslist('kiegroup')
             // use cron to check for new PR's/comments since webhook can't send payload to RHBA Jenkins on VPN?
             cron('H/15 * * * *')
             triggerPhrase('.*[j|J]enkins,? retest this.*')
+            onlyTriggerPhrase(true)
+            useGitHubHooks(true)
+            permitAll(false)
+            autoCloseFailedPullRequests(false)
+            displayBuildErrorsOnDownstreamBuilds(false)
+            commentFilePath("")
             skipBuildPhrase('.*\\[skip\\W+ci\\].*')
-            allowMembersOfWhitelistedOrgsAsAdmin()
+            blackListCommitAuthor('')
+            allowMembersOfWhitelistedOrgsAsAdmin(true)
+            msgSuccess('Build succeeded.')
+            msgFailure('Build failed.')
+            commitStatusContext('Linux')
+            gitHubAuthId('kie-ci1-token')
+            buildDescTemplate('')
+            blackListLabels('')
+            whiteListLabels('')
             extensions {
-                commitStatus {
-                    context('Linux')
+                ghprbSimpleStatus {
+                    showMatrixStatus(true)
+                    commitStatusContext('Linux')
                     statusUrl('${BUILD_URL}display/redirect')
-                    addTestResults()
+                    triggeredStatus('Build triggered.')
+                    startedStatus('Build started.')
+                    addTestResults(true)
                 }
             }
+            includedRegions('')
+            excludedRegions('')
         }
     }
 }
