@@ -1,4 +1,4 @@
-pipelineJob('KIE/kogito/ghprb-webhooks/kogito-runtimes-bdd') {
+pipelineJob('KIE/kogito/ghprb-webhooks/kogito-apps-bdd') {
     definition {
         cpsScm {
             scm {
@@ -9,11 +9,11 @@ pipelineJob('KIE/kogito/ghprb-webhooks/kogito-runtimes-bdd') {
                     branch('*/master')
                 }
             }
-            scriptPath('Jenkinsfile.pr')
+            scriptPath('Jenkinsfile.test-pr')
         }
     }
     properties {
-        githubProjectUrl('https://github.com/kiegroup/kogito-runtimes/')
+        githubProjectUrl('https://github.com/kiegroup/kogito-apps/')
     }
     triggers {
         ghprbTrigger {

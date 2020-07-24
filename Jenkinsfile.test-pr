@@ -29,7 +29,7 @@ pipeline {
     environment {
         KOGITO_CI_EMAIL_TO = credentials('KOGITO_CI_EMAIL_TO')
 
-        MAVEN_REPOSITORY = "https://origin-repository.jboss.org/nexus/content/groups/public/"
+        MAVEN_REPOSITORY = "http://bxms-qe.rhev-ci-vms.eng.rdu2.redhat.com:8081/nexus/content/repositories/kogito-runtimes-pr-artifacts/"
 
         // We use quay as temporary registry for testing between the jobs instead of Openshift, due to https://issues.redhat.com/browse/KOGITO-2219
         IMAGE_REGISTRY_CREDENTIALS = "nightly_kogito"
