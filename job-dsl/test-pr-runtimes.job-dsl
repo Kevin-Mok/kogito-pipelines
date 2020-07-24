@@ -12,8 +12,20 @@ pipelineJob('KIE/kogito/ghprb-webhooks/kogito-runtimes-bdd') {
             scriptPath('Jenkinsfile.test-pr')
         }
     }
+    // TODO: to be removed when can setup separate Maven repository for each PR
+    concurrentBuild(false)
     properties {
         githubProjectUrl('https://github.com/kiegroup/kogito-runtimes/')
+        buildDiscarder {
+            strategy {
+                logRotator {
+                    daysToKeepStr('')
+                    numToKeepStr('5')
+                    artifactDaysToKeepStr('')
+                    artifactNumToKeepStr('')
+                }
+            }
+        }
     }
     triggers {
         ghprbTrigger {

@@ -41,10 +41,6 @@ pipeline {
 
         BRANCH_FOR_LATEST="master"
     }
-    options {
-        // TODO: to be removed when can setup separate Maven repository for each PR
-        disableConcurrentBuilds()
-    }
 
     stages {
         stage("Initialize") {
