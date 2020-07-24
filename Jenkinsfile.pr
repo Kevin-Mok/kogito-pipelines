@@ -36,13 +36,8 @@ pipeline {
         IMAGE_REGISTRY = "quay.io"
         IMAGE_NAMESPACE = "kiegroup"
         IMAGE_NAME_SUFFIX = "nightly"
-        TEMP_TAG = "temp-${BRANCH_NAME}-tests"
-        
-        // Use branch name in nightly tag as we may have parallel master and release branch builds
-        NIGHTLY_TAG = """nightly-${BRANCH_NAME}-${sh(
-                returnStdout: true,
-                script: 'date -u "+%Y-%m-%d"'
-            ).trim()}"""
+        BUILD_NAME = "${getPRRepoName()}-pr-${env.ghprbPullId}-tests"
+        TEMP_TAG = "temp-${env.BUILD_NAME}"
 
         BRANCH_FOR_LATEST="master"
     }
@@ -58,9 +53,8 @@ pipeline {
                     // since this Jenkinsfile is only being used for PR checks
                     assert env.ghprbGhRepository != null
                     echo "temporary tag is ${TEMP_TAG}"
-                    echo "nightly tag is ${NIGHTLY_TAG}"
 
-                    currentBuild.displayName = "${NIGHTLY_TAG}"
+                    currentBuild.displayName = "${BUILD_NAME}"
                 }
             }
         }
@@ -73,7 +67,6 @@ pipeline {
                 script {
                     echo "Call ${RUNTIMES_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
-                    addStringParam(buildParams, "DISPLAY_NAME", "${getPRRepoName()} PR #${env.ghprbPullId}")
                     addStringParam(buildParams, "PR_REPO", getPRRepoName())
                     addStringParam(buildParams, "PR_AUTHOR", env.ghprbPullAuthorLogin)
                     addStringParam(buildParams, "PR_SOURCE_BRANCH", env.ghprbSourceBranch)
@@ -165,8 +158,8 @@ void sendNotification(){
 
 List getDefaultBuildParams(){
     List params = []
-    addStringParam(params, "DISPLAY_NAME", "${NIGHTLY_TAG}")
-    addStringParam(params, "BUILD_BRANCH_NAME", "${BRANCH_NAME}")
+    addStringParam(params, "DISPLAY_NAME", "${BUILD_NAME}")
+    addStringParam(params, "BUILD_BRANCH_NAME", "master")
     return params
 }
 
