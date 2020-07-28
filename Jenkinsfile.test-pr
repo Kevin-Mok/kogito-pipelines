@@ -1,3 +1,4 @@
+import org.jenkinsci.plugins.workflow.libs.Library
 @Library('jenkins-pipeline-shared-libraries')_
 
 RUNTIMES_DEPLOY = "kogito-runtimes-deploy"
@@ -163,7 +164,7 @@ String getPRRepoName() {
 }
 
 void addAuthorBranchParamsIfExist(List params, String repo) {
-    def repositoryScm = getRepositoryScm(repo, env.ghprbPullAuthorLogin, env.ghprbSourceBranch)
+    def repositoryScm = githubscm.getRepositoryScm(repo, env.ghprbPullAuthorLogin, env.ghprbSourceBranch)
     if (repositoryScm != null) {
         addStringParam(params, 'GIT_AUTHOR', env.ghprbPullAuthorLogin)
         addStringParam(params, 'BUILD_BRANCH_NAME', env.ghprbSourceBranch)
@@ -171,7 +172,7 @@ void addAuthorBranchParamsIfExist(List params, String repo) {
 }
 
 void addExamplesParamsForOperator(List params) {
-    def repositoryScm = getRepositoryScm('kogito-examples', env.ghprbPullAuthorLogin, env.ghprbSourceBranch)
+    def repositoryScm = githubscm.getRepositoryScm('kogito-examples', env.ghprbPullAuthorLogin, env.ghprbSourceBranch)
     addStringParam(params, 'EXAMPLES_REF', (repositoryScm != null) ? env.ghprbPullAuthorLogin : 'kiegroup')
     addStringParam(params, 'EXAMPLES_URI', (repositoryScm != null) ? env.ghprbSourceBranch : 'master')
 }
