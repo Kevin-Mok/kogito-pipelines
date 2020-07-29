@@ -27,13 +27,15 @@ class JenkinsfileTestPr extends JenkinsPipelineSpecification {
             env['ghprbSourceBranch'] = 'master'
             Jenkinsfile.getBinding().setVariable("params", params)
             Jenkinsfile.getBinding().setVariable("env", env)
-            explicitlyMockPipelineStep('githubscm.getRepositoryScm')
-            getPipelineMock("githubscm.getRepositoryScm")(params , 'repo') >> 'repo'
+            /* explicitlyMockPipelineStep('githubscm.getRepositoryScm')
+            getPipelineMock("githubscm.getRepositoryScm")(params , 'repo') >> 'repo' */
 		when:
 			Jenkinsfile.addAuthorBranchParamsIfExist(params, 'repo')
 		then:
             echo params
-            1 * getPipelineMock("githubscm.getRepositoryScm")(params , 'repo') >> 'repo'
+            // 1 * getPipelineMock("githubscm.getRepositoryScm")(params , 'repo') >> 'repo'
+            1 * getPipelineMock("github.call")(['credentialsId': 'kie-ci', 'repoOwner': 'kevin', 'repository': 'repo', 'traits': [['$class': 'org.jenkinsci.plugins.github_branch_source.BranchDiscoveryTrait', 'strategyId': 3], ['$class': 'org.jenkinsci.plugins.github_branch_source.OriginPullRequestDiscoveryTrait', 'strategyId': 1], ['$class': 'org.jenkinsci.plugins.github_branch_source.ForkPullRequestDiscoveryTrait', 'strategyId': 1, 'trust': ['$class': 'TrustPermission']]]]) >> 'github'
+            1 * getPipelineMock("resolveScm")(['source': 'github', 'ignoreErrors': true, 'targets': ['master']]) >> 'repo'
             params['ghprbPullAuthorLogin'] == 'kevin'
             params['ghprbSourceBranch'] == 'master'
 	}
