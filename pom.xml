@@ -21,7 +21,7 @@
         <groovy.gmaven.pluginVersion>1.6.1</groovy.gmaven.pluginVersion>
         <google.guava.version>20.0</google.guava.version>
 
-        <jenkins-spock.version>2.0.0</jenkins-spock.version>
+        <jenkins-spock.version>2.1.4</jenkins-spock.version>
         <jenkins.version>2.150.2</jenkins.version>
         <jenkins.servlet.version>3.1.0</jenkins.servlet.version>
         <jenkins.workflow.cps.version>2.72</jenkins.workflow.cps.version>
@@ -57,6 +57,12 @@
             <artifactId>jenkins-spock</artifactId>
             <version>${jenkins-spock.version}</version>
             <scope>test</scope>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.jboss.modules/jboss-modules -->
+        <dependency>
+            <groupId>org.jboss.modules</groupId>
+            <artifactId>jboss-modules</artifactId>
+            <version>1.10.2.Final</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
