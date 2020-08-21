@@ -6,7 +6,6 @@ class JenkinsfileTestPr extends JenkinsPipelineSpecification {
 
     def setup() {
         Jenkinsfile = loadPipelineScriptForTest("Jenkinsfile.test-pr")
-        explicitlyMockPipelineStep('githubscm')
     }
 
 	def "[JenkinsfileTestPr.groovy] getPRRepoName" () {
@@ -18,6 +17,16 @@ class JenkinsfileTestPr extends JenkinsPipelineSpecification {
             repoName == 'bar'
 	}
 
+	/* def "[JenkinsfileTestPr.groovy] addStringParam" () {
+		setup:
+            def params = []
+            Jenkinsfile.getBinding().setVariable("params", params)
+		when:
+			Jenkinsfile.addStringParam(params, 'key', 'val')
+		then:
+            params['key'] == 'val'
+	} */
+
 	def "[JenkinsfileTestPr.groovy] addAuthorBranchParamsIfExist: exists" () {
 		setup:
             // Jenkinsfile.getBinding().setVariable("env", ['ghprbGhRepository' : 'foo/bar'])
@@ -28,19 +37,25 @@ class JenkinsfileTestPr extends JenkinsPipelineSpecification {
             Jenkinsfile.getBinding().setVariable("params", params)
             Jenkinsfile.getBinding().setVariable("env", env)
 
-            // getPipelineMock("githubscm.getRepositoryScm")(params , 'repo') >> 'repo'
-            getPipelineMock("githubscm.getRepositoryScm")(params , 'repo') >> { return 'repo' }
+			explicitlyMockPipelineVariable("githubscm")
+            // getPipelineMock("githubscm.getRepositoryScm")('repo', env.ghprbPullAuthorLogin, env.ghprbSourceBranch) >> 'repo'
+            getPipelineMock("githubscm.getRepositoryScm")('repo', 'kevin', 'master') >> 'repo'
+            // getPipelineMock("githubscm.getRepositoryScm")(params , 'repo') >> { return 'repo' }
             /* explicitlyMockPipelineStep('githubscm.getRepositoryScm')
             getPipelineMock("githubscm.getRepositoryScm")(params , 'repo') >> 'repo' */
+            explicitlyMockPipelineStep('addStringParam')
 		when:
 			Jenkinsfile.addAuthorBranchParamsIfExist(params, 'repo')
 		then:
-            echo params
             // 1 * getPipelineMock("githubscm.getRepositoryScm")(params , 'repo') >> 'repo'
             /* 1 * getPipelineMock("github.call")(['credentialsId': 'kie-ci', 'repoOwner': 'kevin', 'repository': 'repo', 'traits': [['$class': 'org.jenkinsci.plugins.github_branch_source.BranchDiscoveryTrait', 'strategyId': 3], ['$class': 'org.jenkinsci.plugins.github_branch_source.OriginPullRequestDiscoveryTrait', 'strategyId': 1], ['$class': 'org.jenkinsci.plugins.github_branch_source.ForkPullRequestDiscoveryTrait', 'strategyId': 1, 'trust': ['$class': 'TrustPermission']]]]) >> 'github'
             1 * getPipelineMock("resolveScm")(['source': 'github', 'ignoreErrors': true, 'targets': ['master']]) >> 'repo' */
-            params['ghprbPullAuthorLogin'] == 'kevin'
-            params['ghprbSourceBranch'] == 'master'
+            // params['ghprbPullAuthorLogin'] == 'kevin'
+            // params['ghprbSourceBranch'] == 'master'
+            // 1 * getPipelineMock("addStringParam")(params, 'GIT_AUTHOR', 'kevin')
+            1 * getPipelineMock("string.call").call(['name':'GIT_AUTHOR', 'value':'kevin']) >> ['name':'GIT_AUTHOR', 'value':'kevin']
+            1 * getPipelineMock("string.call").call(['name':'BUILD_BRANCH_NAME', 'value':'master']) >> ['name':'BUILD_BRANCH_NAME', 'value':'master']
+            // 1 * getPipelineMock("params.add")(['name':'GIT_AUTHOR', 'value':'kevin'])
 	}
 
 	/* def "[Jenkinsfile.promote] readDeployProperties: DEPLOY_BUILD_URL parameter" () {
