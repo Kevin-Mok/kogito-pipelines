@@ -172,6 +172,7 @@ void addAuthorBranchParamsIfExist(List params, String repo) {
 }
 
 void addExamplesParamsForOperator(List params) {
+    // use user's branch if exists
     def repositoryScm = githubscm.getRepositoryScm('kogito-examples', env.ghprbPullAuthorLogin, env.ghprbSourceBranch)
     addStringParam(params, 'EXAMPLES_REF', (repositoryScm != null) ? env.ghprbPullAuthorLogin : 'kiegroup')
     addStringParam(params, 'EXAMPLES_URI', (repositoryScm != null) ? env.ghprbSourceBranch : 'master')

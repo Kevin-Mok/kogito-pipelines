@@ -4,8 +4,17 @@ import hudson.plugins.git.GitSCM
 class JenkinsfileTestPr extends JenkinsPipelineSpecification {
 	def Jenkinsfile = null
 
+    def params = []
+    def env = [:]
+
     def setup() {
         Jenkinsfile = loadPipelineScriptForTest("Jenkinsfile.test-pr")
+
+        explicitlyMockPipelineVariable("githubscm")
+        env['ghprbPullAuthorLogin'] = 'user'
+        env['ghprbSourceBranch'] = 'user-branch'
+        Jenkinsfile.getBinding().setVariable("params", params)
+        Jenkinsfile.getBinding().setVariable("env", env)
     }
 
 	def "[JenkinsfileTestPr.groovy] getPRRepoName" () {
@@ -17,192 +26,43 @@ class JenkinsfileTestPr extends JenkinsPipelineSpecification {
             repoName == 'bar'
 	}
 
-	/* def "[JenkinsfileTestPr.groovy] addStringParam" () {
-		setup:
-            def params = []
-            Jenkinsfile.getBinding().setVariable("params", params)
-		when:
-			Jenkinsfile.addStringParam(params, 'key', 'val')
-		then:
-            params['key'] == 'val'
-	} */
-
 	def "[JenkinsfileTestPr.groovy] addAuthorBranchParamsIfExist: exists" () {
 		setup:
-            // Jenkinsfile.getBinding().setVariable("env", ['ghprbGhRepository' : 'foo/bar'])
-            def params = []
-            def env = [:]
-            env['ghprbPullAuthorLogin'] = 'kevin'
-            env['ghprbSourceBranch'] = 'master'
-            Jenkinsfile.getBinding().setVariable("params", params)
-            Jenkinsfile.getBinding().setVariable("env", env)
-
-			explicitlyMockPipelineVariable("githubscm")
-            // getPipelineMock("githubscm.getRepositoryScm")('repo', env.ghprbPullAuthorLogin, env.ghprbSourceBranch) >> 'repo'
-            getPipelineMock("githubscm.getRepositoryScm")('repo', 'kevin', 'master') >> 'repo'
-            // getPipelineMock("githubscm.getRepositoryScm")(params , 'repo') >> { return 'repo' }
-            /* explicitlyMockPipelineStep('githubscm.getRepositoryScm')
-            getPipelineMock("githubscm.getRepositoryScm")(params , 'repo') >> 'repo' */
-            explicitlyMockPipelineStep('addStringParam')
+            getPipelineMock("githubscm.getRepositoryScm")('repo', 'user', 'user-branch') >> 'repo'
 		when:
 			Jenkinsfile.addAuthorBranchParamsIfExist(params, 'repo')
 		then:
-            // 1 * getPipelineMock("githubscm.getRepositoryScm")(params , 'repo') >> 'repo'
-            /* 1 * getPipelineMock("github.call")(['credentialsId': 'kie-ci', 'repoOwner': 'kevin', 'repository': 'repo', 'traits': [['$class': 'org.jenkinsci.plugins.github_branch_source.BranchDiscoveryTrait', 'strategyId': 3], ['$class': 'org.jenkinsci.plugins.github_branch_source.OriginPullRequestDiscoveryTrait', 'strategyId': 1], ['$class': 'org.jenkinsci.plugins.github_branch_source.ForkPullRequestDiscoveryTrait', 'strategyId': 1, 'trust': ['$class': 'TrustPermission']]]]) >> 'github'
-            1 * getPipelineMock("resolveScm")(['source': 'github', 'ignoreErrors': true, 'targets': ['master']]) >> 'repo' */
-            // params['ghprbPullAuthorLogin'] == 'kevin'
-            // params['ghprbSourceBranch'] == 'master'
-            // 1 * getPipelineMock("addStringParam")(params, 'GIT_AUTHOR', 'kevin')
-            1 * getPipelineMock("string.call").call(['name':'GIT_AUTHOR', 'value':'kevin']) >> ['name':'GIT_AUTHOR', 'value':'kevin']
-            1 * getPipelineMock("string.call").call(['name':'BUILD_BRANCH_NAME', 'value':'master']) >> ['name':'BUILD_BRANCH_NAME', 'value':'master']
-            // 1 * getPipelineMock("params.add")(['name':'GIT_AUTHOR', 'value':'kevin'])
+            1 * getPipelineMock("string.call").call(['name':'GIT_AUTHOR', 'value':'user'])
+            1 * getPipelineMock("string.call").call(['name':'BUILD_BRANCH_NAME', 'value':'user-branch'])
 	}
 
-	/* def "[Jenkinsfile.promote] readDeployProperties: DEPLOY_BUILD_URL parameter" () {
+	def "[JenkinsfileTestPr.groovy] addAuthorBranchParamsIfExist: doesn't exist" () {
 		setup:
-            Jenkinsfile.getBinding().setVariable("params", ['DEPLOY_BUILD_URL' : 'https://www.google.ca/'])
+            getPipelineMock("githubscm.getRepositoryScm")('kogito-examples', 'user', 'user-branch') >> null
 		when:
-			Jenkinsfile.readDeployProperties()
+			Jenkinsfile.addAuthorBranchParamsIfExist(params, 'repo')
 		then:
-			1 * getPipelineMock("sh")("wget https://www.google.ca/artifact/deployment.properties -O deployment.properties")
-            1 * getPipelineMock("readProperties").call(['file':'deployment.properties'])
+            0 * getPipelineMock("string.call").call(['name':'GIT_AUTHOR', 'value':'user'])
+            0 * getPipelineMock("string.call").call(['name':'BUILD_BRANCH_NAME', 'value':'user-branch'])
 	}
 
-	def "[Jenkinsfile.promote] hasDeployProperty: deployProperties has" () {
+	def "[JenkinsfileTestPr.groovy] addExamplesParamsForOperator: exists" () {
 		setup:
-            Jenkinsfile.getBinding().setVariable("deployProperties", ['foo' : 'bar'])
+            getPipelineMock("githubscm.getRepositoryScm")('kogito-examples', 'user', 'user-branch') >> 'repo'
 		when:
-			def has = Jenkinsfile.hasDeployProperty('foo')
+			Jenkinsfile.addExamplesParamsForOperator(params)
 		then:
-            has == true
+            1 * getPipelineMock("string.call").call(['name':'EXAMPLES_REF', 'value':'user'])
+            1 * getPipelineMock("string.call").call(['name':'EXAMPLES_URI', 'value':'user-branch'])
 	}
 
-	def "[Jenkinsfile.promote] hasDeployProperty: deployProperties does not have" () {
+	def "[JenkinsfileTestPr.groovy] addExamplesParamsForOperator: doesn't exist" () {
 		setup:
-            Jenkinsfile.getBinding().setVariable("deployProperties", [:])
+            getPipelineMock("githubscm.getRepositoryScm")('kogito-examples', 'user', 'user-branch') >> null
 		when:
-			def has = Jenkinsfile.hasDeployProperty('foo')
+			Jenkinsfile.addExamplesParamsForOperator(params)
 		then:
-            has == false
+            1 * getPipelineMock("string.call").call(['name':'EXAMPLES_REF', 'value':'kiegroup'])
+            1 * getPipelineMock("string.call").call(['name':'EXAMPLES_URI', 'value':'master'])
 	}
-
-	def "[Jenkinsfile.promote] getDeployProperty: deployProperties has" () {
-		setup:
-            Jenkinsfile.getBinding().setVariable("deployProperties", ['foo' : 'bar'])
-		when:
-			def fooValue = Jenkinsfile.getDeployProperty('foo')
-		then:
-            fooValue == 'bar' 
-	}
-
-	def "[Jenkinsfile.promote] getDeployProperty: deployProperties does not have" () {
-		setup:
-            Jenkinsfile.getBinding().setVariable("deployProperties", [:])
-		when:
-			def fooValue = Jenkinsfile.getDeployProperty('foo')
-		then:
-            fooValue == ""
-	}
-
-	def "[Jenkinsfile.promote] getParamOrDeployProperty: param" () {
-		setup:
-            Jenkinsfile.getBinding().setVariable("params", ['FOO' : 'BAR'])
-            Jenkinsfile.getBinding().setVariable("deployProperties", ['foo' : 'bar'])
-		when:
-			def fooValue = Jenkinsfile.getParamOrDeployProperty('FOO', 'foo')
-		then:
-            fooValue == "BAR"
-	}
-
-	def "[Jenkinsfile.promote] getParamOrDeployProperty: deploy property" () {
-		setup:
-            Jenkinsfile.getBinding().setVariable("params", ['FOO' : ''])
-            Jenkinsfile.getBinding().setVariable("deployProperties", ['foo' : 'bar'])
-		when:
-			def fooValue = Jenkinsfile.getParamOrDeployProperty('FOO', 'foo')
-		then:
-            fooValue == "bar"
-	}
-
-    //////////////////////////////////////////////////////////////////////////////
-    // Getter / Setter
-    //////////////////////////////////////////////////////////////////////////////
-
-	def "[Jenkinsfile.promote] isRelease: only RELEASE param true" () {
-		setup:
-            Jenkinsfile.getBinding().setVariable("params", ['RELEASE' : true])
-            Jenkinsfile.getBinding().setVariable("deployProperties", ['release' : false])
-		when:
-			def release = Jenkinsfile.isRelease()
-		then:
-            release == true
-	}
-
-	def "[Jenkinsfile.promote] isRelease: only deploy property true" () {
-		setup:
-            Jenkinsfile.getBinding().setVariable("params", ['RELEASE' : false])
-            Jenkinsfile.getBinding().setVariable("deployProperties", ['release' : true])
-		when:
-			def release = Jenkinsfile.isRelease()
-		then:
-            release == true
-	}
-
-	def "[Jenkinsfile.promote] isRelease: both true" () {
-		setup:
-            Jenkinsfile.getBinding().setVariable("params", ['RELEASE' : true])
-            Jenkinsfile.getBinding().setVariable("deployProperties", ['release' : true])
-		when:
-			def release = Jenkinsfile.isRelease()
-		then:
-            release == true
-	}
-
-	def "[Jenkinsfile.promote] isRelease: both false" () {
-		setup:
-            Jenkinsfile.getBinding().setVariable("params", ['RELEASE' : false])
-            Jenkinsfile.getBinding().setVariable("deployProperties", ['release' : false])
-		when:
-			def release = Jenkinsfile.isRelease()
-		then:
-            release == false
-	}
-
-	def "[Jenkinsfile.promote] getGitTag: GIT_TAG param" () {
-		setup:
-            Jenkinsfile.getBinding().setVariable("params", ['GIT_TAG' : 'tag', 'PROJECT_VERSION' : 'version'])
-		when:
-			def tag = Jenkinsfile.getGitTag()
-		then:
-            tag == 'tag'
-	}
-
-	def "[Jenkinsfile.promote] getGitTag: no GIT_TAG param" () {
-		setup:
-            Jenkinsfile.getBinding().setVariable("params", ['GIT_TAG' : '', 'PROJECT_VERSION' : 'version'])
-		when:
-			def tag = Jenkinsfile.getGitTag()
-		then:
-            tag == 'version'
-	}
-
-	def "[Jenkinsfile.promote] getBuildBranch: no BUILD_BRANCH_NAME parameter" () {
-		setup:
-            Jenkinsfile.getBinding().setVariable("params", ['BUILD_BRANCH_NAME' : ''])
-            Jenkinsfile.getBinding().setVariable("deployProperties", ['git.branch' : 'branch'])
-		when:
-			def branchName = Jenkinsfile.getBuildBranch()
-		then:
-            branchName == 'branch'
-	}
-
-	def "[Jenkinsfile.promote] getBuildBranch: BUILD_BRANCH_NAME parameter" () {
-		setup:
-            Jenkinsfile.getBinding().setVariable("params", ['BUILD_BRANCH_NAME' : 'param branch'])
-            Jenkinsfile.getBinding().setVariable("deployProperties", ['git.branch' : 'branch'])
-		when:
-			def branchName = Jenkinsfile.getBuildBranch()
-		then:
-            branchName == 'param branch'
-	} */
 }
