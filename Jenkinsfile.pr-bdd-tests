@@ -1,4 +1,10 @@
+import org.jenkinsci.plugins.workflow.libs.Library
 @Library('jenkins-pipeline-shared-libraries')_
+
+changeAuthor = env.ghprbPullAuthorLogin ?: CHANGE_AUTHOR
+changeBranch = env.ghprbSourceBranch ?: BRANCH_NAME
+changeTarget = env.ghprbTargetBranch ?: CHANGE_TARGET
+changeId = env.ghprbPullId ?: CHANGE_ID
 
 RUNTIMES_DEPLOY = 'kogito-runtimes-deploy'
 EXAMPLES_DEPLOY = 'kogito-examples-deploy'
@@ -24,11 +30,6 @@ pipeline {
         cron ('H 0 * * *')
     }
 
-    parameters {
-        string(name: 'BUILD_BRANCH_NAME', defaultValue: '', description: 'Which branch to build? Set if you are not on a multibranch pipeline.')
-        string(name: 'GIT_AUTHOR', defaultValue: 'kiegroup', description: 'Which Git author repository ?')
-    }
-
     environment {
         KOGITO_CI_EMAIL_TO = credentials('KOGITO_CI_EMAIL_TO')
 
@@ -37,14 +38,9 @@ pipeline {
         IMAGE_REGISTRY = 'quay.io'
         IMAGE_NAMESPACE = 'kiegroup'
         IMAGE_NAME_SUFFIX = 'nightly'
-        TEMP_TAG = "temp-${getBuildBranch()}-tests"
+        BUILD_NAME = "${getPRRepoName()}-pr-${changeId}-tests"
+        TEMP_TAG = "temp-${env.BUILD_NAME}"
         
-        // Use branch name in nightly tag as we may have parallel master and release branch builds
-        NIGHTLY_TAG = """${getBuildBranch()}-${sh(
-                returnStdout: true,
-                script: 'date -u "+%Y-%m-%d"'
-            ).trim()}"""
-
         BRANCH_FOR_LATEST='master'
     }
 
@@ -53,9 +49,9 @@ pipeline {
             steps {
                 script {
                     echo "temporary tag is ${env.TEMP_TAG}"
-                    echo "nightly tag is ${env.NIGHTLY_TAG}"
+                    echo "build name is ${env.BUILD_NAME}"
 
-                    currentBuild.displayName = env.NIGHTLY_TAG
+                    currentBuild.displayName = env.BUILD_NAME
                 }
             }
         }
@@ -65,6 +61,7 @@ pipeline {
                 script {
                     echo "Call ${RUNTIMES_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
+                    addAuthorBranchParamsIfExist(buildParams, getPRRepoName())
                     addStringParam(buildParams, 'MAVEN_DEPLOY_REPOSITORY', getArtifactsRepositoryParam())
                     
                     // images and operator deploy testing will use older working artifacts if that one fails
@@ -122,8 +119,7 @@ pipeline {
 
                     def buildParams = getDefaultBuildParams()
                     addImageBuildParams(buildParams, '', env.TEMP_TAG, true, false)
-                    addStringParam(buildParams, 'EXAMPLES_URI', "https://github.com/${getGitAuthor()}/kogito-examples")
-                    addStringParam(buildParams, 'EXAMPLES_REF', getBuildBranch())
+                    addExamplesParams(buildParams)
                     addStringParam(buildParams, 'MAVEN_ARTIFACT_REPOSITORY', getArtifactsRepositoryParam()) // Get artifacts from specific repository if not empty
 
                     buildJob(IMAGES_DEPLOY, buildParams, false)
@@ -152,8 +148,7 @@ pipeline {
                     addStringParam(buildParams, 'KOGITO_IMAGES_NAMESPACE', env.IMAGE_NAMESPACE)
                     addStringParam(buildParams, 'KOGITO_IMAGES_NAME_SUFFIX', env.IMAGE_NAME_SUFFIX)
                     addStringParam(buildParams, 'KOGITO_IMAGES_TAG', env.TEMP_TAG)
-                    addStringParam(buildParams, 'EXAMPLES_URI', "https://github.com/${getGitAuthor()}/kogito-examples")
-                    addStringParam(buildParams, 'EXAMPLES_REF', getBuildBranch())
+                    addExamplesParams(buildParams)
                     addStringParam(buildParams, 'MAVEN_ARTIFACT_REPOSITORY', getArtifactsRepositoryParam()) // Get artifacts from specific repository if not empty
 
                     buildJob(OPERATOR_DEPLOY, buildParams, false)
@@ -201,11 +196,36 @@ void addUnstableStage(){
 
 List getDefaultBuildParams(){
     List params = []
-    addStringParam(params, 'DISPLAY_NAME', env.NIGHTLY_TAG)
-    addStringParam(params, 'BUILD_BRANCH_NAME', getBuildBranch())
-    addStringParam(params, 'GIT_AUTHOR', getGitAuthor())
-
+    addStringParam(params, 'DISPLAY_NAME', env.BUILD_NAME)
     return params
+}
+
+boolean doesBranchExist(String repo, String author, String branch) {
+    return githubscm.getRepositoryScm(repo, author, branch) != null
+}
+
+void addAuthorBranchParamsIfExist(List params, String repo) {
+    if (doesBranchExist(repo, changeAuthor, changeBranch))
+        addStringParam(params, 'GIT_AUTHOR', changeAuthor)
+        addStringParam(params, 'BUILD_BRANCH_NAME', changeBranch)
+    }
+}
+
+void addExamplesParams(List buildParams){
+    def author = ''
+    def branch = ''
+    if (doesBranchExist('kogito-examples', changeAuthor, changeBranch)) {
+        author = changeAuthor
+        branch = changeBranch
+    } else if (doesBranchExist('kogito-examples', 'kiegroup', changeTarget)) {
+        author = 'kiegroup'
+        branch = changeTarget
+    } else {
+        author = 'kiegroup'
+        branch = 'master'
+    }
+    addStringParam(buildParams, 'EXAMPLES_URI', "https://github.com/${author}/kogito-examples")
+    addStringParam(buildParams, 'EXAMPLES_REF', branch)
 }
 
 void addImageBuildParams(List buildParams = [], String paramsPrefix = '', String tag, boolean isRegistryIncluded = false, boolean isFinalImage = false){
@@ -230,14 +250,11 @@ String constructKey(String prefix, String paramId){
     return prefix == null || prefix == '' ? paramId : "${prefix}_${paramId}"
 }
 
-String getBuildBranch(){
-    return params.BUILD_BRANCH_NAME ?: env.BRANCH_NAME
-}
-
-String getGitAuthor(){
-    return params.GIT_AUTHOR
-}
-
 String getArtifactsRepositoryParam(){
     return credentials('PR_CHECK_MAVEN_REPOSITORY')
 }
+
+String getPRRepoName() {
+    return env.ghprbGhRepository.split('/')[1]
+}
+
