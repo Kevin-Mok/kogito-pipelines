@@ -205,7 +205,7 @@ boolean doesBranchExist(String repo, String author, String branch) {
 }
 
 void addAuthorBranchParamsIfExist(List params, String repo) {
-    if (doesBranchExist(repo, changeAuthor, changeBranch))
+    if (doesBranchExist(repo, changeAuthor, changeBranch)) {
         addStringParam(params, 'GIT_AUTHOR', changeAuthor)
         addStringParam(params, 'BUILD_BRANCH_NAME', changeBranch)
     }
