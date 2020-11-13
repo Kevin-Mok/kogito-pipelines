@@ -31,7 +31,7 @@ pipeline {
     }
 
     environment {
-        KOGITO_CI_EMAIL_TO = credentials('KOGITO_CI_EMAIL_TO')
+        PR_CHECK_MAVEN_REPO = credentials('PR_CHECK_MAVEN_REPOSITORY')
 
         // We use quay as temporary registry for testing between the jobs instead of Openshift, due to https://issues.redhat.com/browse/KOGITO-2219
         IMAGE_REGISTRY_CREDENTIALS = 'nightly_kogito'
@@ -62,7 +62,9 @@ pipeline {
                     echo "Call ${RUNTIMES_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
                     addAuthorBranchParamsIfExist(buildParams, getPRRepoName())
-                    addStringParam(buildParams, 'MAVEN_DEPLOY_REPOSITORY', getArtifactsRepositoryParam())
+                    /* addStringParam(buildParams, 'MAVEN_DEPLOY_REPOSITORY', getArtifactsRepositoryParam()) */
+                    addDeployParams(buildParams)
+                    addStringParam(buildParams, 'MAVEN_DEPLOY_CREDS_ID', 'unpacks-zip-on-qa-nexus')
                     
                     // images and operator deploy testing will use older working artifacts if that one fails
                     buildJob(RUNTIMES_DEPLOY, buildParams, false)
@@ -80,8 +82,7 @@ pipeline {
                 script {
                     echo "Call ${OPTAPLANNER_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
-                    addStringParam(buildParams, 'MAVEN_DEPENDENCIES_REPOSITORY', getArtifactsRepositoryParam())
-                    addStringParam(buildParams, 'MAVEN_DEPLOY_REPOSITORY', getArtifactsRepositoryParam())
+                    addDeployParams(buildParams)
 
                     buildJob(OPTAPLANNER_DEPLOY, buildParams, false)
                 }
@@ -98,8 +99,7 @@ pipeline {
                 script {
                     echo "Call ${EXAMPLES_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
-                    addStringParam(buildParams, 'MAVEN_DEPENDENCIES_REPOSITORY', getArtifactsRepositoryParam())
-                    addStringParam(buildParams, 'MAVEN_DEPLOY_REPOSITORY', getArtifactsRepositoryParam())
+                    addDeployParams(buildParams)
                     
                     // images and operator deploy testing will use older working artifacts if that one fails
                     buildJob(EXAMPLES_DEPLOY, buildParams, false)
@@ -120,7 +120,7 @@ pipeline {
                     def buildParams = getDefaultBuildParams()
                     addImageBuildParams(buildParams, '', env.TEMP_TAG, true, false)
                     addExamplesParams(buildParams)
-                    addStringParam(buildParams, 'MAVEN_ARTIFACT_REPOSITORY', getArtifactsRepositoryParam()) // Get artifacts from specific repository if not empty
+                    addDeployParams(buildParams)
 
                     buildJob(IMAGES_DEPLOY, buildParams, false)
                 }
@@ -133,9 +133,6 @@ pipeline {
         }
 
         stage('Build & Deploy Operator') {
-            when {
-                expression { return isOperatorDeploy() }
-            }
             steps {
                 script {
                     echo "Call ${OPERATOR_DEPLOY} job"
@@ -149,7 +146,7 @@ pipeline {
                     addStringParam(buildParams, 'KOGITO_IMAGES_NAME_SUFFIX', env.IMAGE_NAME_SUFFIX)
                     addStringParam(buildParams, 'KOGITO_IMAGES_TAG', env.TEMP_TAG)
                     addExamplesParams(buildParams)
-                    addStringParam(buildParams, 'MAVEN_ARTIFACT_REPOSITORY', getArtifactsRepositoryParam()) // Get artifacts from specific repository if not empty
+                    addDeployParams(buildParams)
 
                     buildJob(OPERATOR_DEPLOY, buildParams, false)
                 }
@@ -211,6 +208,11 @@ void addAuthorBranchParamsIfExist(List params, String repo) {
     }
 }
 
+void addDeployParams(List buildParams){
+    addStringParam(buildParams, 'MAVEN_DEPENDENCIES_REPOSITORY', getArtifactsRepositoryParam())
+    addStringParam(buildParams, 'MAVEN_DEPLOY_REPOSITORY', getArtifactsRepositoryParam())
+}
+
 void addExamplesParams(List buildParams){
     def author = ''
     def branch = ''
@@ -251,7 +253,7 @@ String constructKey(String prefix, String paramId){
 }
 
 String getArtifactsRepositoryParam(){
-    return credentials('PR_CHECK_MAVEN_REPOSITORY')
+    return env.PR_CHECK_MAVEN_REPO
 }
 
 String getPRRepoName() {
