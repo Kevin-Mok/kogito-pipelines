@@ -291,7 +291,7 @@ pipeline {
                     def buildParams = getDefaultBuildParams()
                     addSkipTestsParam(buildParams)
                     addReleaseDeployGitParam(buildParams)
-                    addImageBuildParams(buildParams, '', env.TEMP_TAG, true, false)
+                    addImageBuildParams(buildParams, env.TEMP_TAG, '', true, false)
                     addStringParam(buildParams, 'EXAMPLES_URI', env.EXAMPLES_URI)
                     addStringParam(buildParams, 'EXAMPLES_REF', env.EXAMPLES_REF)
                     addStringParam(buildParams, 'MAVEN_ARTIFACT_REPOSITORY', env.STAGING_REPOSITORY) // Get artifacts from staging repository
@@ -312,7 +312,7 @@ pipeline {
                     def buildParams = getDefaultBuildParams()
                     addSkipTestsParam(buildParams)
                     addReleaseDeployGitParam(buildParams)
-                    addImageBuildParams(buildParams, '', env.TEMP_TAG, true, false)
+                    addImageBuildParams(buildParams, env.TEMP_TAG, '', true, false)
                     
                     // For BDD tests
                     // We use the quay image registry for temp images until https://issues.redhat.com/browse/KOGITO-2219 is solved
@@ -425,7 +425,7 @@ pipeline {
                     
                     def buildParams = getDefaultBuildParams()
                     addStringParam(buildParams, 'DEPLOY_BUILD_URL', getJobUrl(IMAGES_DEPLOY))
-                    addImageBuildParams(buildParams, 'PROMOTE', env.IMAGE_PROMOTE_TAG, true, true)
+                    addImageBuildParams(buildParams, env.IMAGE_PROMOTE_TAG, 'PROMOTE', true, true)
                     addBooleanParam(buildParams, 'DEPLOY_WITH_LATEST_TAG', params.DEPLOY_AS_LATEST)
 
                     // To be uncommented for testing if artifacts are released to same repository as the staging
@@ -448,7 +448,7 @@ pipeline {
 
                     def buildParams = getDefaultBuildParams()
                     addStringParam(buildParams, 'DEPLOY_BUILD_URL', getJobUrl(OPERATOR_DEPLOY))
-                    addImageBuildParams(buildParams, 'PROMOTE', env.IMAGE_PROMOTE_TAG, true, true)
+                    addImageBuildParams(buildParams, env.IMAGE_PROMOTE_TAG, 'PROMOTE', true, true)
                     addBooleanParam(buildParams, 'DEPLOY_WITH_LATEST_TAG', params.DEPLOY_AS_LATEST)
                     addReleasePromoteGitParam(buildParams)
 
@@ -593,7 +593,7 @@ void addReleasePromoteGitParam(buildParams){
     addStringParam(buildParams, 'GITHUB_TOKEN_CREDS_ID', env.GITHUB_TOKEN_CREDS_ID)
 }
 
-void addImageBuildParams(List buildParams = [], String paramsPrefix = '', String tag, boolean isRegistryIncluded = false, boolean isFinalImage = false){
+void addImageBuildParams(List buildParams, String tag, String paramsPrefix = '', boolean isRegistryIncluded = false, boolean isFinalImage = false){
     if (!isFinalImage && params.USE_TEMP_OPENSHIFT_REGISTRY) {
         addBooleanParam(buildParams, constructKey(paramsPrefix, 'IMAGE_USE_OPENSHIFT_REGISTRY'), true)
     } else if(isRegistryIncluded) {
@@ -616,7 +616,7 @@ void addBooleanParam(List params, String key, boolean value){
 }
 
 String constructKey(String prefix, String paramId){
-    return prefix == null || prefix == '' ? paramId : "${prefix}_${paramId}"
+    return prefix ? "${prefix}_${paramId}" : paramId
 }
 
 String getDisplayName(){
