@@ -40,8 +40,6 @@ pipeline {
         IMAGE_NAME_SUFFIX = 'nightly'
         BUILD_NAME = "${getPRRepoName()}-pr-${changeId}-tests"
         TEMP_TAG = "temp-${env.BUILD_NAME}"
-        
-        BRANCH_FOR_LATEST='master'
     }
 
     stages {
@@ -81,6 +79,7 @@ pipeline {
                 script {
                     echo "Call ${OPTAPLANNER_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
+                    addAuthorBranchParamsIfExist(buildParams, 'optaplanner')
                     addDeployParams(buildParams)
 
                     buildJob(OPTAPLANNER_DEPLOY, buildParams, false)
@@ -98,6 +97,7 @@ pipeline {
                 script {
                     echo "Call ${EXAMPLES_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
+                    addAuthorBranchParamsIfExist(buildParams, 'kogito-examples')
                     addDeployParams(buildParams)
                     
                     // images and operator deploy testing will use older working artifacts if that one fails
@@ -117,6 +117,7 @@ pipeline {
                     echo "Call ${IMAGES_DEPLOY} job"
 
                     def buildParams = getDefaultBuildParams()
+                    addAuthorBranchParamsIfExist(buildParams, 'kogito-images')
                     addImageBuildParams(buildParams)
                     addExamplesParams(buildParams)
                     addDeployParams(buildParams)
@@ -136,6 +137,7 @@ pipeline {
                 script {
                     echo "Call ${OPERATOR_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
+                    addAuthorBranchParamsIfExist(buildParams, 'kogito-cloud-operator')
                     addImageBuildParams(buildParams)
 
                     // For BDD tests
@@ -204,6 +206,8 @@ void addAuthorBranchParamsIfExist(List params, String repo) {
     if (doesBranchExist(repo, changeAuthor, changeBranch)) {
         addStringParam(params, 'GIT_AUTHOR', changeAuthor)
         addStringParam(params, 'BUILD_BRANCH_NAME', changeBranch)
+    } else if (changeTarget != 'master' && doesBranchExist(repo, 'kiegroup', changeTarget)) {
+        addStringParam(params, 'BUILD_BRANCH_NAME', changeTarget)
     }
 }
 

@@ -28,7 +28,7 @@ class JenkinsfilePrBddTests extends JenkinsPipelineSpecification {
             repoName == 'bar'
 	}
 
-	def '[JenkinsfilePrBddTests.groovy] addAuthorBranchParamsIfExist: exists' () {
+	def '[JenkinsfilePrBddTests.groovy] addAuthorBranchParamsIfExist: change branch exists' () {
 		setup:
             getPipelineMock('githubscm.getRepositoryScm')('repo', changeAuthor, changeBranch) >> 'repo'
 		when:
@@ -38,14 +38,26 @@ class JenkinsfilePrBddTests extends JenkinsPipelineSpecification {
             1 * getPipelineMock('string.call').call(['name' : 'BUILD_BRANCH_NAME', 'value' : changeBranch])
 	}
 
-	def '[JenkinsfilePrBddTests.groovy] addAuthorBranchParamsIfExist: doesn\'t exist' () {
+	def '[JenkinsfilePrBddTests.groovy] addAuthorBranchParamsIfExist: change target exists' () {
 		setup:
-            getPipelineMock('githubscm.getRepositoryScm')('kogito-examples', changeAuthor, changeBranch) >> null
+            getPipelineMock('githubscm.getRepositoryScm')('repo', changeAuthor, changeBranch) >> null
+            getPipelineMock('githubscm.getRepositoryScm')('repo', 'kiegroup', changeTarget) >> 'repo'
+		when:
+			Jenkinsfile.addAuthorBranchParamsIfExist(params, 'repo')
+		then:
+            1 * getPipelineMock('string.call').call(['name' : 'BUILD_BRANCH_NAME', 'value' : changeTarget])
+	}
+
+	def '[JenkinsfilePrBddTests.groovy] addAuthorBranchParamsIfExist: change branch/target doesn\'t exist' () {
+		setup:
+            getPipelineMock('githubscm.getRepositoryScm')('repo', changeAuthor, changeBranch) >> null
+            getPipelineMock('githubscm.getRepositoryScm')('repo', 'kiegroup', changeTarget) >> null
 		when:
 			Jenkinsfile.addAuthorBranchParamsIfExist(params, 'repo')
 		then:
             0 * getPipelineMock('string.call').call(['name' : 'GIT_AUTHOR', 'value' : changeAuthor])
             0 * getPipelineMock('string.call').call(['name' : 'BUILD_BRANCH_NAME', 'value' : changeBranch])
+            0 * getPipelineMock('string.call').call(['name' : 'BUILD_BRANCH_NAME', 'value' : changeTarget])
 	}
 
 	def '[JenkinsfilePrBddTests.groovy] doesBranchExist: doesn\'t exist' () {
@@ -86,6 +98,7 @@ class JenkinsfilePrBddTests extends JenkinsPipelineSpecification {
             1 * getPipelineMock('string.call').call(['name' : 'EXAMPLES_URI', 'value' : 'https://github.com/kiegroup/kogito-examples'])
             1 * getPipelineMock('string.call').call(['name' : 'EXAMPLES_REF', 'value' : changeTarget])
     }
+
     def '[JenkinsfilePrBddTests.groovy] addExamplesParams: neither exist' () {
         setup:
             getPipelineMock('githubscm.getRepositoryScm')('kogito-examples', changeAuthor, changeBranch) >> null
