@@ -118,7 +118,7 @@ pipeline {
                     echo "Call ${IMAGES_DEPLOY} job"
 
                     def buildParams = getDefaultBuildParams()
-                    addImageBuildParams(buildParams, '', env.TEMP_TAG, true, false)
+                    addImageBuildParams(buildParams, env.TEMP_TAG, '', true, false)
                     addExamplesParams(buildParams)
                     addDeployParams(buildParams)
 
@@ -137,7 +137,7 @@ pipeline {
                 script {
                     echo "Call ${OPERATOR_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
-                    addImageBuildParams(buildParams, '', env.TEMP_TAG, true, false)
+                    addImageBuildParams(buildParams, env.TEMP_TAG, '', true, false)
 
                     // For BDD tests
                     addBooleanParam(buildParams, 'KOGITO_IMAGES_IN_OPENSHIFT_REGISTRY', false)
@@ -230,7 +230,7 @@ void addExamplesParams(List buildParams){
     addStringParam(buildParams, 'EXAMPLES_REF', branch)
 }
 
-void addImageBuildParams(List buildParams = [], String paramsPrefix = '', String tag, boolean isRegistryIncluded = false, boolean isFinalImage = false){
+void addImageBuildParams(List buildParams, String tag, String paramsPrefix = '', boolean isRegistryIncluded = false, boolean isFinalImage = false){
     if(isRegistryIncluded) {
         addStringParam(buildParams, constructKey(paramsPrefix, 'IMAGE_REGISTRY_CREDENTIALS'), env.IMAGE_REGISTRY_CREDENTIALS)
         addStringParam(buildParams, constructKey(paramsPrefix, 'IMAGE_REGISTRY'), env.IMAGE_REGISTRY)
