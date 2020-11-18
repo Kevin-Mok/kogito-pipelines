@@ -60,6 +60,7 @@ pipeline {
                     echo "Call ${RUNTIMES_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
                     addAuthorBranchParamsIfExist(buildParams, getPRRepoName())
+                    addStringParam(buildParams, 'PR_TARGET_BRANCH', changeTarget)
                     addDeployParams(buildParams)
                     addStringParam(buildParams, 'MAVEN_DEPLOY_CREDS_ID', 'unpacks-zip-on-qa-nexus')
                     

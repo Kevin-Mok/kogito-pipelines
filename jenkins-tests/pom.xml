@@ -1178,9 +1178,8 @@
                                 <configScript>config.groovy</configScript>
                                 <testSources>
                                     <testSource>
-                                        <directory>${project.basedir}/jenkins-tests</directory>
+                                        <directory>${project.basedir}</directory>
                                         <includes>
-                                            <!-- <include>JenkinsfilePrBddTests.groovy</include> -->
                                             <include>*.groovy</include>
                                         </includes>
                                     </testSource>
@@ -1208,7 +1207,7 @@
                 <includes>
                     <include>Jenkinsfile.*</include>
                 </includes>
-                <directory>${project.basedir}</directory>
+                <directory>${project.basedir}/..</directory>
             </testResource>
         </testResources>
     </build>
