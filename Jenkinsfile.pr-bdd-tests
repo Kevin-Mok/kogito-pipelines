@@ -80,7 +80,8 @@ pipeline {
                 script {
                     echo "Call ${OPTAPLANNER_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
-                    addAuthorBranchParamsIfExist(buildParams, 'optaplanner')
+                    def targetBranch = (changeTarget != 'master') ? getOptaPlannerBranch() : ''
+                    addAuthorBranchParamsIfExist(buildParams, 'optaplanner', targetBranch)
                     addDeployParams(buildParams)
 
                     buildJob(OPTAPLANNER_DEPLOY, buildParams, false)
@@ -203,13 +204,24 @@ boolean doesBranchExist(String repo, String author, String branch) {
     return githubscm.getRepositoryScm(repo, author, branch) != null
 }
 
-void addAuthorBranchParamsIfExist(List params, String repo) {
+void addAuthorBranchParamsIfExist(List params, String repo, String targetBranch = '') {
+    targetBranch = targetBranch ?: changeTarget
     if (doesBranchExist(repo, changeAuthor, changeBranch)) {
         addStringParam(params, 'GIT_AUTHOR', changeAuthor)
         addStringParam(params, 'BUILD_BRANCH_NAME', changeBranch)
-    } else if (changeTarget != 'master' && doesBranchExist(repo, 'kiegroup', changeTarget)) {
-        addStringParam(params, 'BUILD_BRANCH_NAME', changeTarget)
+    } else if (targetBranch != 'master' && doesBranchExist(repo, 'kiegroup', targetBranch)) {
+        addStringParam(params, 'BUILD_BRANCH_NAME', targetBranch)
     }
+}
+
+String getOptaPlannerBranch() {
+    /* The OptaPlanner major version is shifted by 7 from the Kogito major version:
+       Kogito 1.x.y -> OptaPlanner 8.x.y. */
+    int majorVersionShift = 7
+    String [] changeTargetSplit = changeTarget.split("\\.")
+    assert changeTargetSplit.length == 3
+    Integer optaplannerMajorVersion = Integer.parseInt(changeTargetSplit[0]) + majorVersionShift
+    return "${optaplannerMajorVersion}.${changeTargetSplit[1]}.${changeTargetSplit[2]}"
 }
 
 void addDeployParams(List buildParams){
