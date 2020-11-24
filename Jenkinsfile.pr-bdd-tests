@@ -7,6 +7,7 @@ changeTarget = env.ghprbTargetBranch ?: CHANGE_TARGET
 changeId = env.ghprbPullId ?: CHANGE_ID
 
 RUNTIMES_DEPLOY = 'kogito-runtimes-deploy'
+APPS_DEPLOY = 'kogito-apps-deploy'
 EXAMPLES_DEPLOY = 'kogito-examples-deploy'
 IMAGES_DEPLOY = 'kogito-images-deploy'
 OPERATOR_DEPLOY = 'kogito-operator-deploy'
@@ -32,6 +33,7 @@ pipeline {
 
     environment {
         PR_CHECK_MAVEN_REPO = credentials('PR_CHECK_MAVEN_REPOSITORY')
+        MAVEN_REPO_CREDS_ID = 'unpacks-zip-on-qa-nexus'
 
         // We use quay as temporary registry for testing between the jobs instead of Openshift, due to https://issues.redhat.com/browse/KOGITO-2219
         IMAGE_REGISTRY_CREDENTIALS = 'nightly_kogito'
@@ -59,10 +61,8 @@ pipeline {
                 script {
                     echo "Call ${RUNTIMES_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
-                    addAuthorBranchParamsIfExist(buildParams, getPRRepoName())
-                    addStringParam(buildParams, 'PR_TARGET_BRANCH', changeTarget)
-                    addDeployParams(buildParams)
-                    addStringParam(buildParams, 'MAVEN_DEPLOY_CREDS_ID', 'unpacks-zip-on-qa-nexus')
+                    addAuthorBranchParamsIfExist(buildParams, 'kogito-runtimes')
+                    addArtifactsRepositoriesParam(buildParams)
                     
                     // images and operator deploy testing will use older working artifacts if that one fails
                     buildJob(RUNTIMES_DEPLOY, buildParams, false)
@@ -82,9 +82,28 @@ pipeline {
                     def buildParams = getDefaultBuildParams()
                     def targetBranch = (changeTarget != 'master') ? getOptaPlannerBranch() : ''
                     addAuthorBranchParamsIfExist(buildParams, 'optaplanner', targetBranch)
-                    addDeployParams(buildParams)
+                    addArtifactsRepositoriesParam(buildParams)
 
                     buildJob(OPTAPLANNER_DEPLOY, buildParams, false)
+                }
+            }
+            post {
+                failure {
+                    addFailedStage()
+                }
+            }
+        }
+
+        stage('Build & Deploy Kogito Apps') {
+            steps {
+                script {
+                    echo "Call ${APPS_DEPLOY} job"
+                    def buildParams = getDefaultBuildParams()
+                    addAuthorBranchParamsIfExist(buildParams, 'kogito-apps')
+                    addArtifactsRepositoriesParam(buildParams)
+                    
+                    // images and operator deploy testing will use older working artifacts if that one fails
+                    buildJob(APPS_DEPLOY, buildParams, false)
                 }
             }
             post {
@@ -100,7 +119,7 @@ pipeline {
                     echo "Call ${EXAMPLES_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
                     addAuthorBranchParamsIfExist(buildParams, 'kogito-examples')
-                    addDeployParams(buildParams)
+                    addArtifactsRepositoriesParam(buildParams)
                     
                     // images and operator deploy testing will use older working artifacts if that one fails
                     buildJob(EXAMPLES_DEPLOY, buildParams, false)
@@ -122,7 +141,7 @@ pipeline {
                     addAuthorBranchParamsIfExist(buildParams, 'kogito-images')
                     addImageBuildParams(buildParams)
                     addExamplesParams(buildParams)
-                    addDeployParams(buildParams)
+                    addArtifactsRepositoriesParam(buildParams)
 
                     buildJob(IMAGES_DEPLOY, buildParams, false)
                 }
@@ -149,7 +168,7 @@ pipeline {
                     addStringParam(buildParams, 'KOGITO_IMAGES_NAME_SUFFIX', env.IMAGE_NAME_SUFFIX)
                     addStringParam(buildParams, 'KOGITO_IMAGES_TAG', env.TEMP_TAG)
                     addExamplesParams(buildParams)
-                    addDeployParams(buildParams)
+                    addArtifactsRepositoriesParam(buildParams)
 
                     buildJob(OPERATOR_DEPLOY, buildParams, false)
                 }
@@ -209,6 +228,7 @@ void addAuthorBranchParamsIfExist(List params, String repo, String targetBranch 
     if (doesBranchExist(repo, changeAuthor, changeBranch)) {
         addStringParam(params, 'GIT_AUTHOR', changeAuthor)
         addStringParam(params, 'BUILD_BRANCH_NAME', changeBranch)
+    // set build branch to kiegroup's version branch
     } else if (targetBranch != 'master' && doesBranchExist(repo, 'kiegroup', targetBranch)) {
         addStringParam(params, 'BUILD_BRANCH_NAME', targetBranch)
     }
@@ -224,9 +244,11 @@ String getOptaPlannerBranch() {
     return "${optaplannerMajorVersion}.${changeTargetSplit[1]}.${changeTargetSplit[2]}"
 }
 
-void addDeployParams(List buildParams){
+void addArtifactsRepositoriesParam(List buildParams){
     addStringParam(buildParams, 'MAVEN_DEPENDENCIES_REPOSITORY', getArtifactsRepositoryParam())
     addStringParam(buildParams, 'MAVEN_DEPLOY_REPOSITORY', getArtifactsRepositoryParam())
+    addStringParam(buildParams, 'MAVEN_ARTIFACT_REPOSITORY', getArtifactsRepositoryParam())
+    addStringParam(buildParams, 'MAVEN_DEPLOY_CREDS_ID', env.MAVEN_REPO_CREDS_ID)
 }
 
 void addExamplesParams(List buildParams){
