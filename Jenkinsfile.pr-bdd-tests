@@ -39,8 +39,8 @@ pipeline {
         IMAGE_REGISTRY_CREDENTIALS = 'nightly_kogito'
         IMAGE_REGISTRY = 'quay.io'
         IMAGE_NAMESPACE = 'kiegroup'
-        IMAGE_NAME_SUFFIX = 'nightly'
-        BUILD_NAME = "${getPRRepoName()}-pr-${changeId}-tests"
+        IMAGE_NAME_SUFFIX = "${getPRRepoName()}-pr-${changeId}-bdd-tests"
+        BUILD_NAME = "${getPRRepoName()}-pr-${changeId}-bdd-tests"
         TEMP_TAG = "temp-${env.BUILD_NAME}"
     }
 
@@ -162,7 +162,7 @@ pipeline {
                     addImageBuildParams(buildParams)
 
                     // For BDD tests
-                    addBooleanParam(buildParams, 'KOGITO_IMAGES_IN_OPENSHIFT_REGISTRY', false)
+                    addBooleanParam(buildParams, 'KOGITO_IMAGES_IN_OPENSHIFT_REGISTRY', true)
                     addStringParam(buildParams, 'KOGITO_IMAGES_REGISTRY', env.IMAGE_REGISTRY)
                     addStringParam(buildParams, 'KOGITO_IMAGES_NAMESPACE', env.IMAGE_NAMESPACE)
                     addStringParam(buildParams, 'KOGITO_IMAGES_NAME_SUFFIX', env.IMAGE_NAME_SUFFIX)
@@ -269,6 +269,7 @@ void addExamplesParams(List buildParams){
 }
 
 void addImageBuildParams(List buildParams){
+    addBooleanParam(buildParams, 'IMAGE_USE_OPENSHIFT_REGISTRY', true)
     addStringParam(buildParams, 'IMAGE_REGISTRY_CREDENTIALS', env.IMAGE_REGISTRY_CREDENTIALS)
     addStringParam(buildParams, 'IMAGE_REGISTRY', env.IMAGE_REGISTRY)
     addStringParam(buildParams, 'IMAGE_NAMESPACE', env.IMAGE_NAMESPACE)
