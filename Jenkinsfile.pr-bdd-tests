@@ -32,6 +32,7 @@ pipeline {
     }
 
     environment {
+        MAVEN_SETTINGS_CONFIG_FILE_ID = '2bd418aa-56fa-4403-9232-8c77a50fc528'
         PR_CHECK_MAVEN_REPO = credentials('PR_CHECK_MAVEN_REPOSITORY')
         MAVEN_REPO_CREDS_ID = 'unpacks-zip-on-qa-nexus'
 
@@ -62,6 +63,7 @@ pipeline {
                     echo "Call ${RUNTIMES_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
                     addAuthorBranchParamsIfExist(buildParams, 'kogito-runtimes')
+                    addMavenSettingsParam(buildParams)
                     addArtifactsRepositoriesParam(buildParams)
                     
                     // images and operator deploy testing will use older working artifacts if that one fails
@@ -81,6 +83,7 @@ pipeline {
                     echo "Call ${OPTAPLANNER_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
                     def targetBranch = (changeTarget != 'master') ? getOptaPlannerBranch() : ''
+                    addMavenSettingsParam(buildParams)
                     addAuthorBranchParamsIfExist(buildParams, 'optaplanner', targetBranch)
                     addArtifactsRepositoriesParam(buildParams)
 
@@ -99,6 +102,7 @@ pipeline {
                 script {
                     echo "Call ${APPS_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
+                    addMavenSettingsParam(buildParams)
                     addAuthorBranchParamsIfExist(buildParams, 'kogito-apps')
                     addArtifactsRepositoriesParam(buildParams)
                     
@@ -118,6 +122,7 @@ pipeline {
                 script {
                     echo "Call ${EXAMPLES_DEPLOY} job"
                     def buildParams = getDefaultBuildParams()
+                    addMavenSettingsParam(buildParams)
                     addAuthorBranchParamsIfExist(buildParams, 'kogito-examples')
                     addArtifactsRepositoriesParam(buildParams)
                     
@@ -266,6 +271,10 @@ void addExamplesParams(List buildParams){
     }
     addStringParam(buildParams, 'EXAMPLES_URI', "https://github.com/${author}/kogito-examples")
     addStringParam(buildParams, 'EXAMPLES_REF', branch)
+}
+
+void addMavenSettingsParam(List buildParams){
+    addStringParam(buildParams, 'MAVEN_SETTINGS_CONFIG_FILE_ID', env.MAVEN_SETTINGS_CONFIG_FILE_ID)
 }
 
 void addImageBuildParams(List buildParams){
