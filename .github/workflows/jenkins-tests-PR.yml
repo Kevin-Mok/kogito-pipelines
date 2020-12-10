@@ -7,6 +7,7 @@ on:
   pull_request:
     paths: 
     - '.jenkins/**'
+    - 'Jenkinsfile.*'
 
 jobs:
   build:
