@@ -301,4 +301,3 @@ String getArtifactsRepositoryParam(){
 String getPRRepoName() {
     return env.ghprbGhRepository.split('/')[1]
 }
-
