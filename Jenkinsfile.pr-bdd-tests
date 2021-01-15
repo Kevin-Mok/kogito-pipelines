@@ -28,7 +28,7 @@ pipeline {
     }
 
     options {
-        buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')
+        buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '20')
     }
 
     environment {
@@ -221,6 +221,7 @@ void addUnstableStage(){
 List getDefaultBuildParams(){
     List params = []
     addStringParam(params, 'DISPLAY_NAME', env.BUILD_NAME)
+    addBooleanParam(params, 'SKIP_TESTS', true)
     return params
 }
 
