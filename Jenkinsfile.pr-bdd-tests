@@ -27,6 +27,10 @@ pipeline {
         label 'kie-rhel7 && !master'
     }
 
+    options {
+        buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')
+    }
+
     environment {
         MAVEN_SETTINGS_CONFIG_FILE_ID = 'kogito_release_settings'
         PR_CHECK_MAVEN_REPO = credentials('PR_CHECK_MAVEN_REPOSITORY')
@@ -248,7 +252,7 @@ String getOptaPlannerBranch() {
 void addArtifactsRepositoriesParam(List buildParams){
     addStringParam(buildParams, 'MAVEN_DEPENDENCIES_REPOSITORY', getArtifactsRepositoryParam())
     addStringParam(buildParams, 'MAVEN_DEPLOY_REPOSITORY', getArtifactsRepositoryParam())
-    addStringParam(buildParams, 'MAVEN_DEPLOY_CREDS_ID', env.MAVEN_REPO_CREDS_ID)
+    addStringParam(buildParams, 'MAVEN_REPO_CREDS_ID', env.MAVEN_REPO_CREDS_ID)
 }
 
 void addCloudRepositoriesParam(buildParams){
